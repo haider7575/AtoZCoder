@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\OrderItem;
-use App\Services\ShippingService;
+use App\Http\Requests\StoreOrderRequest;
+use App\Http\Requests\UpdateOrderStatusRequest;
+use App\Jobs\ProcessShipment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -29,19 +31,11 @@ class OrderController extends Controller
         abort(403);
     }
 
-    public function store(Request $request)
+    public function store(StoreOrderRequest $request)
     {
-        // Admin Only
-        Gate::authorize('manage-products'); // Reusing admin gate, or create 'create-order'
+        // Validation and Authorization handled by StoreOrderRequest
 
-        // "create order: order can contain multipal products... validate available products... deduct stock... assign to staff"
-
-        $validated = $request->validate([
-            'products' => 'required|array',
-            'products.*.id' => 'required|exists:products,id',
-            'products.*.quantity' => 'required|integer|min:1',
-            'assigned_staff_id' => 'required|exists:users,id', // Staff Assignment
-        ]);
+        $validated = $request->validated();
 
         return DB::transaction(function () use ($validated, $request) {
             $subtotal = 0;
@@ -74,7 +68,7 @@ class OrderController extends Controller
             $total = $subtotal + $tax;
 
             $order = Order::create([
-                'user_id' => $request->user()->id, // Assuming Auth user is creating logic
+                'user_id' => $request->user()->id, // Assuming authenticated user is creating the order
                 'subtotal' => $subtotal,
                 'tax' => $tax,
                 'total_amount' => $total,
@@ -93,14 +87,11 @@ class OrderController extends Controller
         });
     }
 
-    public function updateStatus(Request $request, Order $order, ShippingService $shippingService)
+    public function updateStatus(UpdateOrderStatusRequest $request, Order $order)
     {
-        Gate::authorize('update-order-status', $order);
+        // Validation and Authorization handled by UpdateOrderStatusRequest
 
-        $validated = $request->validate([
-            'status' => 'required|in:pending,confirmed,shipped,cancelled',
-        ]);
-
+        $validated = $request->validated();
         $newStatus = $validated['status'];
         $oldStatus = $order->status;
 
@@ -138,7 +129,9 @@ class OrderController extends Controller
         $order->save();
 
         if ($newStatus === 'confirmed') {
-            $shippingService->createShipment($order);
+            // "order confirmation should not wait for the API response"
+            // "shipment creation should be handled via queued job"
+            ProcessShipment::dispatch($order);
         }
 
         if ($request->wantsJson()) {

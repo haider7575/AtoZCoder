@@ -123,4 +123,6 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'shipping_webhook_secret' => env('SHIPPING_WEBHOOK_SECRET'),
+
 ];

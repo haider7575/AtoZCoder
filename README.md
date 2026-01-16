@@ -1,59 +1,102 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# AtoZ Order Management System
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A robust Laravel 11 application for managing products, staff, and orders with automated shipping integration, asynchronous processing, and secure webhooks.
 
-## About Laravel
+## 🚀 Project Setup Instructions
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Prerequisites
+- PHP 8.2+
+- Composer
+- MySQL
+- Laragon
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Installation
+1.  **Clone the Repository**:
+    ```bash
+    git clone <https://github.com/haider7575/AtoZCoder.git>
+    cd AtoZCoder
+    ```
+2.  **Install Dependencies**:
+    ```bash
+    composer install
+    ```
+3.  **Environment Configuration**:
+    - Copy `.env.example` to `.env`:
+      ```bash
+      cp .env.example .env
+      ```
+    - Generate Application Key:
+      ```bash
+      php artisan key:generate
+      ```
+    - Configure your database credentials in `.env` (`DB_DATABASE=atozcoder`).
+4.  **Database Migration & Seeding**:
+    ```bash
+    php artisan migrate --seed
+    ```
+5.  **Run the Application**:
+    ```bash
+    php artisan serve
+    ```
+6.  **Background Processing (Required for Shipments)**:
+    - Set `QUEUE_CONNECTION=database` in `.env`.
+    - Run the queue worker:
+      ```bash
+      php artisan queue:work
+      ```
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## 🛠 Architecture & Design Decisions
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 1. Server-Side Rendering (Blade)
+The application transitioned from a JS-heavy Axios approach to **Server-Side Rendering (SSR)** using Laravel Blade. This ensures:
+- Faster initial page loads.
+- Simpler state management via Laravel Sessions.
+- Improved SEO and developer productivity.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+### 2. Role-Based Access Control (RBAC)
+- **Admin**: Full access to Products, Staff management, and Order creation.
+- **Staff**: Restricted to viewing assigned orders and updating their statuses.
+- Implementation: Laravel **Gates** and **Form Requests** ensure strict authorization at both Route and Logic levels.
 
-## Laravel Sponsors
+### 3. Asynchronous Workflow
+- **Order Confirmation**: When an admin confirms an order, the system dispatches a `ProcessShipment` job.
+- **Benefit**: The UI remains responsive; the "heavy lifting" of talking to external Shipping APIs happens in the background.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 4. Secure Webhooks
+- **Endpoint**: `/api/webhook/shipping`
+- **Security**: Uses **HMAC-SHA256 signature validation** via the `X-Signature` header to ensure payloads originate only from trusted sources.
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 📡 API Endpoints
 
-## Contributing
+### Authentication (API)
+- `POST /api/login` - Returns Sanctum Token.
+- `POST /api/logout` - Revokes token.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### Products
+- `GET /api/products` - List products (Paginated).
+- `POST /api/products` - Create product (Admin only).
+- `PUT /api/products/{id}` - Update product (Admin only).
+- `DELETE /api/products/{id}` - Delete product (Admin only).
 
-## Code of Conduct
+### Orders
+- `GET /api/orders` - List all (Admin) or assigned (Staff) orders.
+- `POST /api/orders` - Create order (Admin only).
+- `PATCH /api/orders/{id}/status` - Update status (Admin or Assigned Staff).
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Webhooks
+- `POST /api/webhook/shipping` - Public endpoint for shipment events (`delivered`, `failed`). Requires `X-Signature`.
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🚚 Shipping API Integration
+The application demonstrates integration with a service layer `ShippingService`.
+- **API Used**: [JSONPlaceholder](https://jsonplaceholder.typicode.com/) (Mock REST API).
+- **Process**:
+  1. Job `ProcessShipment` calls `ShippingService`.
+  2. Service sends a `POST` request with order details.
+  3. On success, a `Tracking Number` and `Label URL` are generated and stored in the `shipments` table.
+  4. Webhooks can then update these shipment statuses remotely.

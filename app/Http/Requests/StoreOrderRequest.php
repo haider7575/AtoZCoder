@@ -11,9 +11,8 @@ class StoreOrderRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true; // Auth handled by Middleware/Gate in Controller, or here.
-        // Controller uses gate, so we just allow here or move Gate logic here.
-        // Let's rely on Controller Gate for specific permission, but here allow base access.
+        // Admin only
+        return $this->user()->isAdmin();
     }
 
     /**

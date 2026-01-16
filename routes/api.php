@@ -8,6 +8,8 @@ use App\Http\Controllers\OrderController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
+Route::post('/webhook/shipping', [\App\Http\Controllers\WebhookController::class, 'handleShipping']);
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
 

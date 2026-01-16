@@ -24,11 +24,7 @@ class ProcessShipment implements ShouldQueue
      */
     public function handle(\App\Services\ShippingService $shippingService): void
     {
-        // Don't process if already has shipment
-        if ($this->order->shipment) {
-            return;
-        }
-
+        // "shipment creation should be handled via queued job"
         $shippingService->createShipment($this->order);
     }
 }

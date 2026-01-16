@@ -11,7 +11,8 @@ class UpdateOrderStatusRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        $order = $this->route('order');
+        return $this->user()->isAdmin() || ($this->user()->isStaff() && $order->assigned_staff_id === $this->user()->id);
     }
 
     /**
@@ -22,7 +23,7 @@ class UpdateOrderStatusRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'status' => 'required|in:pending,confirmed,shipped,cancelled',
         ];
     }
 }
